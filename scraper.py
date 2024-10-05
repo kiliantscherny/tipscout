@@ -151,6 +151,3 @@ deals_df = pd.DataFrame(deals)
 
 # Save DataFrame to CSV for later use
 deals_df.to_csv("deals.csv", index=False)
-
-# Print the DataFrame
-print(deals_df)
