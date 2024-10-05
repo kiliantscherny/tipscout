@@ -25,7 +25,7 @@ def tipster_scraper_dag():
     # Database Insertion Task
     @task()
     def store_data(deals_df: pd.DataFrame):
-        db_handler = DuckDBHandler("deals.db")
+        db_handler = DuckDBHandler("/opt/airflow/data/deals.db")
         if not db_handler.table_exists("deals"):
             db_handler.create_table()
         db_handler.insert_data(deals_df)
