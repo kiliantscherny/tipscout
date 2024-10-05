@@ -1,3 +1,5 @@
 .vscode
 deals.db
 deals.csv
+logs
+__pycache__
