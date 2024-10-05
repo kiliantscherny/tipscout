@@ -1,0 +1,6 @@
+duckdb
+airflow-provider-duckdb
+beautifulsoup4
+requests
+pandas
+streamlit
