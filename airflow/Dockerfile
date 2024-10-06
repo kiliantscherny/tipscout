@@ -15,7 +15,7 @@ USER root
 
 WORKDIR $AIRFLOW_HOME
 
-COPY scripts scripts
+COPY ./airflow/scripts scripts
 RUN chmod +x scripts
 
 USER $AIRFLOW_UID
