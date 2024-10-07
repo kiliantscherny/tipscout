@@ -20,7 +20,18 @@ def fetch_data(db_path, row_limit):
         table_name = tables[0][0]
 
         # Fetch data
-        query = f"SELECT * FROM {table_name} LIMIT {row_limit}"
+        query = f"""
+        SELECT
+            *,
+            sold + "left" AS total_available,
+            "left" / (sold + "left") AS left_percent,
+            old_price - new_price AS discount_absolute,
+            (old_price - new_price) / old_price AS discount_percent
+        FROM
+            {table_name}
+        LIMIT
+            {row_limit}
+        """
         df = conn.execute(query).df()
 
         return df, None
