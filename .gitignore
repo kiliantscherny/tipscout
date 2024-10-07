@@ -1,5 +1,5 @@
 .vscode
-deals.db
+deals.duckdb
 deals.csv
 logs
 __pycache__

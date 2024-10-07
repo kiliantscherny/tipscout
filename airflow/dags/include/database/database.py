@@ -17,9 +17,10 @@ class DuckDBHandler:
             status VARCHAR,
             sold VARCHAR,
             "left" VARCHAR,
-            deal_name VARCHAR,
+            deal_description VARCHAR,
             date_added DATE,
             location VARCHAR,
+            hours VARCHAR,
             merchant_name VARCHAR,
             old_price VARCHAR,
             old_currency VARCHAR,
@@ -32,8 +33,8 @@ class DuckDBHandler:
 
     def insert_data(self, df):
         insert_query = """
-        INSERT INTO deals (surrogate_key, url, status, sold, "left", deal_name, date_added, location, merchant_name, old_price, old_currency, new_price, new_currency, inserted_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO deals (surrogate_key, url, status, sold, "left", deal_description, date_added, location, hours, merchant_name, old_price, old_currency, new_price, new_currency, inserted_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
         for _, row in df.iterrows():
             self.conn.execute(insert_query, tuple(row))
