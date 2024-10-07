@@ -57,12 +57,12 @@ class TipsterScraper:
         if deal_status_div:
             status = "SOLD OUT" if "SOLD OUT" in deal_status_div.text else "EXPIRED"
         sold = (
-            page_soup.find("div", id="nowsold").text.strip()
+            page_soup.find("div", id="nowsold").text.strip().split()[0]
             if page_soup.find("div", id="nowsold")
             else None
         )
         left = (
-            page_soup.find("div", id="nowleft").text.strip()
+            page_soup.find("div", id="nowleft").text.strip().split()[0]
             if page_soup.find("div", id="nowleft")
             else None
         )
@@ -102,19 +102,26 @@ class TipsterScraper:
         return merchant_name, old_price, old_currency, new_price, new_currency
 
     def _get_location_info(self, page_soup) -> str:
-        """Extract the location information of the deal
+        """Extract the location information of the deal as a string.
 
         :param page_soup: BeautifulSoup object of the deal's page
-        :return: String of the location of the deal
+        :return: Comma-separated, quote-encased string of locations
         """
         # Find the accordion item for "WHERE"
         where_section = page_soup.find("span", text="+ WHERE")
-        location = "No Location Found"
+        locations = []
         if where_section:
             where_content = where_section.find_next("div", class_="accordion__content")
             if where_content and where_content.p:
-                location = where_content.p.text.strip()
-        return location
+                # Split the locations by <br> tags and strip whitespace
+                locations = [
+                    loc.strip()
+                    for loc in where_content.p.decode_contents().split("<br>")
+                    if loc.strip()
+                ]
+
+        # Create a comma-separated, quote-encased string
+        return ", ".join([f'"{loc}"' for loc in locations])
 
     def _get_hours_info(self, page_soup) -> str:
         """Extract the hours information of the deal
