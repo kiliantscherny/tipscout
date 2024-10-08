@@ -23,8 +23,8 @@ def fetch_data(db_path, row_limit):
         query = f"""
         SELECT
             *,
-            sold + "left" AS total_available,
-            "left" / (sold + "left") AS left_percent,
+            sold + remaining AS total_available,
+            remaining / (sold + remaining) AS left_percent,
             old_price - new_price AS discount_absolute,
             (old_price - new_price) / old_price AS discount_percent
         FROM
@@ -43,7 +43,7 @@ def fetch_data(db_path, row_limit):
 
 # Sidebar for user input
 st.sidebar.header("Settings")
-db_path = st.sidebar.text_input("Database Path", value="/app/data/deals.db")
+db_path = st.sidebar.text_input("Database Path", value="/app/data/deals.duckdb")
 row_limit = st.sidebar.number_input("Number of Rows to Display", min_value=1, value=10)
 refresh_button = st.sidebar.button("Refresh Data")
 

@@ -46,11 +46,11 @@ class TipsterScraper:
             return f"{year}-{month_day[:2]}-{month_day[2:]}"  # Format: YYYY-MM-DD
         return None
 
-    def _get_status_sold_left(self, page_soup) -> tuple:
-        """Extract the status, sold, and left information of the deal
+    def _get_status_sold_remaining(self, page_soup) -> tuple:
+        """Extract the status, sold, and remaining information of the deal
 
         :param page_soup: BeautifulSoup object of the deal's page
-        :return: Tuple containing the status, sold, and left information of the deal
+        :return: Tuple containing the status, sold, and remaining information of the deal
         """
         status = "AVAILABLE"  # Default status is "AVAILABLE"
         deal_status_div = page_soup.find("div", id="dealbuttonclosed")
@@ -61,12 +61,12 @@ class TipsterScraper:
             if page_soup.find("div", id="nowsold")
             else None
         )
-        left = (
+        remaining = (
             page_soup.find("div", id="nowleft").text.strip().split()[0]
             if page_soup.find("div", id="nowleft")
             else None
         )
-        return status, sold, left
+        return status, sold, remaining
 
     def _get_price_info(self, page_soup) -> tuple:
         """Extract the price information of the deal
@@ -77,27 +77,27 @@ class TipsterScraper:
         old_price = (
             page_soup.find("span", id="dealpriceold").text.strip()
             if page_soup.find("span", id="dealpriceold")
-            else "No Old Price"
+            else None
         )
         old_currency = (
             page_soup.find("span", class_="money old").text.strip()
             if page_soup.find("span", class_="money old")
-            else "No Currency"
+            else None
         )
         new_price = (
             page_soup.find("span", id="deal-buy-total-t").text.strip()
             if page_soup.find("span", id="deal-buy-total-t")
-            else "No New Price"
+            else None
         )
         new_currency = (
             page_soup.find("span", class_="money").text.strip()
             if page_soup.find("span", class_="money")
-            else "No Currency"
+            else None
         )
         merchant_name = (
             page_soup.find("div", id="teamtoppartner").text.strip()
             if page_soup.find("div", id="teamtoppartner")
-            else "No Merchant"
+            else None
         )
         return merchant_name, old_price, old_currency, new_price, new_currency
 
@@ -151,7 +151,7 @@ class TipsterScraper:
         # Extract necessary details
         # Get the deal's name
         deal_description = (
-            page_soup.find("h1").text.strip() if page_soup.find("h1") else "No Name"
+            page_soup.find("h1").text.strip() if page_soup.find("h1") else None
         )
         # Get the date the deal was added
         date_added = (
@@ -159,14 +159,14 @@ class TipsterScraper:
                 page_soup.find("meta", property="og:image")["content"]
             )
             if page_soup.find("meta", property="og:image")
-            else "No Date"
+            else None
         )
         # Get the location of the deal
         location = self._get_location_info(page_soup)
         # Get the hours of the deal
         hours = self._get_hours_info(page_soup)
-        # Get the status, sold, and left information of the deal
-        status, sold, left = self._get_status_sold_left(page_soup)
+        # Get the status, sold, and remaining information of the deal
+        status, sold, remaining = self._get_status_sold_remaining(page_soup)
         # Get the price information of the deal
         merchant_name, old_price, old_currency, new_price, new_currency = (
             self._get_price_info(page_soup)
@@ -181,7 +181,7 @@ class TipsterScraper:
             "url": url,
             "status": status,
             "sold": sold,
-            "left": left,
+            "remaining": remaining,
             "deal_description": deal_description,
             "date_added": date_added,
             "location": location,

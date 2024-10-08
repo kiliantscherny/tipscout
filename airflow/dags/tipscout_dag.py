@@ -19,7 +19,7 @@ def tipster_scraper_dag():
     # Scraping Task
     @task()
     def scrape_data() -> pd.DataFrame:
-        scraper = TipsterScraper(main_url="https://www.tipster.io/")
+        scraper = TipsterScraper(main_url="https://www.tipster.io/team")
         return scraper.scrape()
 
     # Database Insertion Task
