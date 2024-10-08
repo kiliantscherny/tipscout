@@ -113,15 +113,19 @@ class TipsterScraper:
         if where_section:
             where_content = where_section.find_next("div", class_="accordion__content")
             if where_content and where_content.p:
-                # Split the locations by <br> tags and strip whitespace
-                locations = [
-                    loc.strip()
-                    for loc in where_content.p.decode_contents().split("<br>")
-                    if loc.strip()
-                ]
+                # Get the raw HTML text
+                raw_html = where_content.p.decode_contents()
+                # Use regex to clean up the HTML
+                clean_text = re.sub(r'<br/> ', ', ', raw_html)  # Replace single <br/> with a comma
+                clean_text = re.sub(r'<br/><br/>', "', '", clean_text)  # Replace double <br/> with ', '
+                clean_text = clean_text.replace('<br>', '')  # Remove any remaining <br>
+                # Remove HTML tags and split by comma
+                raw_locations = clean_text.split("', '")
+                # Strip whitespace and format each address
+                locations = [f"'{loc.strip()}'" for loc in raw_locations if loc.strip()]
 
-        # Create a comma-separated, quote-encased string
-        return ", ".join([f'"{loc}"' for loc in locations])
+        # Create a comma-separated string of locations
+        return ', '.join(locations)
 
     def _get_hours_info(self, page_soup) -> str:
         """Extract the hours information of the deal
