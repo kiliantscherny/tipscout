@@ -225,5 +225,5 @@ class TipsterScraper:
         filtered_urls = self._extract_urls(main_page_soup)
         for url in filtered_urls:
             deal_info = self._retrieve_deal_info(url)
-            self.deals.append(deal_info)
+            self.tipsterdeals.append(deal_info)
         return pd.DataFrame(self.tipsterdeals)

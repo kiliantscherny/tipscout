@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import duckdb
 import numpy as np
+import altair as alt
 
 st.set_page_config(layout="wide")
 
@@ -14,9 +15,9 @@ def fetch_data(db_path):
         tables = conn.execute("SHOW TABLES").fetchall()
         if not tables:
             return None, "No tables found in the database."
-        
+
         table_name = tables[0][0]
-        
+
         query = f"""
         SELECT
             *,
@@ -66,49 +67,251 @@ if "data" in st.session_state and st.session_state.data is not None:
 
     # Count of unique deal IDs
     with col1:
-        unique_deal_ids = st.session_state.data["deal_id"].nunique()
-        st.metric(label="Unique deals", value=unique_deal_ids)
+        if "date_added" in st.session_state.data.columns:
+            # Ensure date_added is in datetime format
+            st.session_state.data["date_added"] = pd.to_datetime(
+                st.session_state.data["date_added"]
+            )
+
+            # Get the latest month and the previous month
+            latest_month = st.session_state.data["date_added"].dt.to_period("M").max()
+            previous_month = latest_month - 1
+
+            # Count unique deals for the latest month
+            latest_month_data = st.session_state.data[
+                st.session_state.data["date_added"].dt.to_period("M") == latest_month
+            ]
+            unique_deals_latest_month = latest_month_data["deal_id"].nunique()
+
+            # Count unique deals for the previous month
+            previous_month_data = st.session_state.data[
+                st.session_state.data["date_added"].dt.to_period("M") == previous_month
+            ]
+            unique_deals_previous_month = previous_month_data["deal_id"].nunique()
+
+            # Calculate the difference
+            difference = unique_deals_latest_month - unique_deals_previous_month
+            delta = f"{difference} deals"
+
+            # Display the metric with the difference
+            st.metric(
+                label="Unique Deals Latest Month",
+                value=unique_deals_latest_month,
+                delta=delta,
+            )
+        else:
+            st.warning(
+                "Column 'date_added' is required to calculate unique deals per month."
+            )
 
     with col2:
         if (
             "old_price" in st.session_state.data.columns
             and "new_price" in st.session_state.data.columns
+            and "date_added" in st.session_state.data.columns
         ):
-            average_saving_percentage = st.session_state.data["discount_percent"].mean()
+            # Ensure date_added is in datetime format
+            st.session_state.data["date_added"] = pd.to_datetime(
+                st.session_state.data["date_added"]
+            )
+
+            # Get the latest month and the previous month
+            latest_month = st.session_state.data["date_added"].dt.to_period("M").max()
+            previous_month = latest_month - 1
+
+            # Calculate average saving percentage for the latest month
+            latest_month_data = st.session_state.data[
+                st.session_state.data["date_added"].dt.to_period("M") == latest_month
+            ]
+            latest_month_avg_saving = latest_month_data["discount_percent"].mean()
+
+            # Calculate average saving percentage for the previous month
+            previous_month_data = st.session_state.data[
+                st.session_state.data["date_added"].dt.to_period("M") == previous_month
+            ]
+            previous_month_avg_saving = previous_month_data["discount_percent"].mean()
+
+            # Calculate the difference
+            difference = latest_month_avg_saving - previous_month_avg_saving
+            delta = f"{difference*100:.2f}%"
+
+            # Display the metric with the difference
             st.metric(
-                label="Average Saving (%)",
-                value=f"{average_saving_percentage*100:.2f}%",
+                label="Avg Saving Latest Month (%)",
+                value=f"{latest_month_avg_saving*100:.2f}%",
+                delta=delta,
             )
         else:
             st.warning(
-                "Columns 'old_price' and 'new_price' are required to calculate the average saving percentage."
+                "Columns 'old_price', 'new_price', and 'date_added' are required to calculate the average saving percentages."
             )
 
     with col3:
-        # Average old price
-        # st.subheader("Average Old Price")
-        avg_old_price = st.session_state.data["old_price"].mean()
-        st.metric(label="Average Old Price", value=f"{avg_old_price:.2f} DKK")
+        if (
+            "old_price" in st.session_state.data.columns
+            and "date_added" in st.session_state.data.columns
+        ):
+            # Ensure date_added is in datetime format
+            st.session_state.data["date_added"] = pd.to_datetime(
+                st.session_state.data["date_added"]
+            )
+
+            # Get the latest month and the previous month
+            latest_month = st.session_state.data["date_added"].dt.to_period("M").max()
+            previous_month = latest_month - 1
+
+            # Calculate average old price for the latest month
+            latest_month_data = st.session_state.data[
+                st.session_state.data["date_added"].dt.to_period("M") == latest_month
+            ]
+            latest_month_avg_old_price = latest_month_data["old_price"].mean()
+
+            # Calculate average old price for the previous month
+            previous_month_data = st.session_state.data[
+                st.session_state.data["date_added"].dt.to_period("M") == previous_month
+            ]
+            previous_month_avg_old_price = previous_month_data["old_price"].mean()
+
+            # Calculate the difference
+            difference = latest_month_avg_old_price - previous_month_avg_old_price
+            delta = f"{difference:.2f} DKK"
+
+            # Display the metric with the difference
+            st.metric(
+                label="Average Old Price",
+                value=f"{latest_month_avg_old_price:.2f} DKK",
+                delta=delta,
+                delta_color="inverse",
+            )
+        else:
+            st.warning(
+                "Columns 'old_price' and 'date_added' are required to calculate the average old price."
+            )
 
     with col4:
-        # Average new price
-        # st.subheader("Average New Price")
-        avg_new_price = st.session_state.data["new_price"].mean()
-        st.metric(label="Average New Price", value=f"{avg_new_price:.2f} DKK")
+        if (
+            "new_price" in st.session_state.data.columns
+            and "date_added" in st.session_state.data.columns
+        ):
+            # Ensure date_added is in datetime format
+            st.session_state.data["date_added"] = pd.to_datetime(
+                st.session_state.data["date_added"]
+            )
 
-    # Deals added each month
-    st.subheader("Deals Added Each Month")
-    deals_per_month = st.session_state.data.groupby(
-        st.session_state.data["date_added"].dt.to_period("M")
-    ).size()
-    st.line_chart(deals_per_month)
+            # Get the latest month and the previous month
+            latest_month = st.session_state.data["date_added"].dt.to_period("M").max()
+            previous_month = latest_month - 1
 
-    # Average saving percentage per month
-    st.subheader("Average Saving Percentage Per Month")
-    avg_saving_per_month = st.session_state.data.groupby(
-        st.session_state.data["date_added"].dt.to_period("M")
-    )["discount_percent"].mean()
-    st.line_chart(avg_saving_per_month)
+            # Calculate average new price for the latest month
+            latest_month_data = st.session_state.data[
+                st.session_state.data["date_added"].dt.to_period("M") == latest_month
+            ]
+            latest_month_avg_new_price = latest_month_data["new_price"].mean()
+
+            # Calculate average new price for the previous month
+            previous_month_data = st.session_state.data[
+                st.session_state.data["date_added"].dt.to_period("M") == previous_month
+            ]
+            previous_month_avg_new_price = previous_month_data["new_price"].mean()
+
+            # Calculate the difference
+            difference = latest_month_avg_new_price - previous_month_avg_new_price
+            delta = f"{difference:.2f} DKK"
+
+            # Display the metric with the difference
+            st.metric(
+                label="Average New Price",
+                value=f"{latest_month_avg_new_price:.2f} DKK",
+                delta=delta,
+                delta_color="inverse",
+            )
+        else:
+            st.warning(
+                "Columns 'new_price' and 'date_added' are required to calculate the average new price."
+            )
+
+    # Deals added each month with data labels
+    col5, col6 = st.columns(2)
+
+    with col5:
+        st.subheader("Unique Deals Added Each Month")
+        unique_deals_per_month = (
+            st.session_state.data.groupby(
+                st.session_state.data["date_added"].dt.to_period("M")
+            )["deal_id"]
+            .nunique()
+            .reset_index(name="unique_deals")
+        )
+
+        # Convert Period to datetime for Altair
+        unique_deals_per_month["date_added"] = unique_deals_per_month[
+            "date_added"
+        ].dt.to_timestamp()
+
+        # Plotting with points and data labels
+        unique_deals_chart = (
+            alt.Chart(unique_deals_per_month)
+            .mark_line()
+            .encode(
+                x=alt.X("date_added:T", title="Month"),
+                y=alt.Y("unique_deals:Q", title="Number of Unique Deals"),
+            )
+            .properties(title="Unique Deals Added Each Month")
+        )
+
+        points = unique_deals_chart.mark_point().encode(
+            tooltip=["date_added:T", "unique_deals:Q"]
+        )
+
+        labels = unique_deals_chart.mark_text(
+            align="left", baseline="middle", dx=5
+        ).encode(text="unique_deals:Q")
+
+        st.altair_chart(unique_deals_chart + points + labels, use_container_width=True)
+
+    with col6:
+        # Average saving percentage per month with data labels
+        st.subheader("Average Saving Percentage Per Month")
+        avg_saving_per_month = (
+            st.session_state.data.groupby(
+                st.session_state.data["date_added"].dt.to_period("M")
+            )["discount_percent"]
+            .mean()
+            .reset_index(name="avg_saving")
+        )
+
+        # Convert Period to datetime for Altair
+        avg_saving_per_month["date_added"] = avg_saving_per_month[
+            "date_added"
+        ].dt.to_timestamp()
+
+        # Plotting with points and data labels
+        avg_saving_chart = (
+            alt.Chart(avg_saving_per_month)
+            .mark_line()
+            .encode(
+                x=alt.X("date_added:T", title="Month"),
+                y=alt.Y(
+                    "avg_saving:Q",
+                    title="Average Saving (%)",
+                    axis=alt.Axis(format="%"),
+                ),
+            )
+            .properties(title="Average Saving Percentage Per Month")
+        )
+
+        points = avg_saving_chart.mark_point().encode(
+            tooltip=[
+                alt.Tooltip("date_added:T", title="Month"),
+                alt.Tooltip("avg_saving:Q", title="Average Saving (%)", format=".2%"),
+            ]
+        )
+
+        labels = avg_saving_chart.mark_text(
+            align="left", baseline="middle", dx=5
+        ).encode(text=alt.Text("avg_saving:Q", format=".2%"))
+
+        st.altair_chart(avg_saving_chart + points + labels, use_container_width=True)
 
     # Top merchants by number of deals
     st.subheader("Top Merchants by Number of Deals")
