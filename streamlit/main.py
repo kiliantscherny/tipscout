@@ -57,7 +57,7 @@ if refresh_button or "data" not in st.session_state:
 # Check if data is available in session state
 if "data" in st.session_state and st.session_state.data is not None:
 
-        # Active, expired, and sold out deals
+    # Active, expired, and sold out deals
     st.subheader("Deal Status Overview")
     if "status" in st.session_state.data.columns:
         status_counts = st.session_state.data["status"].value_counts()
