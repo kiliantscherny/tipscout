@@ -11,7 +11,7 @@ class TipsterScraper:
 
     def __init__(self, main_url):
         self.main_url = main_url
-        self.deals = []
+        self.tipsterdeals = []
 
     def _fetch_main_page(self) -> BeautifulSoup:
         """Fetch the content of the main page of the website
@@ -32,6 +32,18 @@ class TipsterScraper:
         links = soup.find_all("a", href=True)
         pattern = re.compile(r"^/team/(?!31361)\d+\.html$")
         return [link["href"] for link in links if pattern.match(link["href"])]
+
+    def _extract_deal_id(self, url) -> str:
+        """Extract the deal ID from the deal's URL
+
+        :param url: URL of the deal
+        :return: String of the deal ID
+        """
+        match = re.search(r"/team/(\d+)\.html$", url)
+        if match:
+            deal_id = match.group(1)
+            return deal_id
+        return None
 
     def _extract_date_from_deal_url(self, url) -> str:
         """Extract the date from the deal's URL
@@ -116,16 +128,20 @@ class TipsterScraper:
                 # Get the raw HTML text
                 raw_html = where_content.p.decode_contents()
                 # Use regex to clean up the HTML
-                clean_text = re.sub(r'<br/> ', ', ', raw_html)  # Replace single <br/> with a comma
-                clean_text = re.sub(r'<br/><br/>', "', '", clean_text)  # Replace double <br/> with ', '
-                clean_text = clean_text.replace('<br>', '')  # Remove any remaining <br>
+                clean_text = re.sub(
+                    r"<br/> ", ", ", raw_html
+                )  # Replace single <br/> with a comma
+                clean_text = re.sub(
+                    r"<br/><br/>", "', '", clean_text
+                )  # Replace double <br/> with ', '
+                clean_text = clean_text.replace("<br>", "")  # Remove any remaining <br>
                 # Remove HTML tags and split by comma
                 raw_locations = clean_text.split("', '")
                 # Strip whitespace and format each address
                 locations = [f"'{loc.strip()}'" for loc in raw_locations if loc.strip()]
 
         # Create a comma-separated string of locations
-        return ', '.join(locations)
+        return ", ".join(locations)
 
     def _get_hours_info(self, page_soup) -> str:
         """Extract the hours information of the deal
@@ -157,6 +173,7 @@ class TipsterScraper:
         deal_description = (
             page_soup.find("h1").text.strip() if page_soup.find("h1") else None
         )
+        deal_id = self._extract_deal_id(url)
         # Get the date the deal was added
         date_added = (
             self._extract_date_from_deal_url(
@@ -182,7 +199,8 @@ class TipsterScraper:
 
         return {
             "surrogate_key": surrogate_key,
-            "url": url,
+            "deal_id": deal_id,
+            "full_url": full_url,
             "status": status,
             "sold": sold,
             "remaining": remaining,
@@ -208,4 +226,4 @@ class TipsterScraper:
         for url in filtered_urls:
             deal_info = self._retrieve_deal_info(url)
             self.deals.append(deal_info)
-        return pd.DataFrame(self.deals)
+        return pd.DataFrame(self.tipsterdeals)

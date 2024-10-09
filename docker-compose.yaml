@@ -297,7 +297,7 @@ services:
     depends_on:
       - airflow-worker
     volumes:
-      - ./airflow/data:/app/data  # Assuming deals.db is in ./airflow/data
+      - ./airflow/data:/app/data
 
 volumes:
   postgres-db-volume:
