@@ -1,5 +1,5 @@
 
-<h1 align="center"><img src="images/tipscout-logo.png" alt="Stacked Lego Bricks"></h1>
+<h1 align="center"><img src="images/tipscout-logo.png" alt="tipscout logo"></h1>
 <h2 align="center"> tipscout: Stats about Tipster deals </h2>
 <p align="center"> A data pipeline and visualization app to analyze deals from Tipster.</p>
 
@@ -7,6 +7,8 @@
 >This project is very much a Work In Progress. It works, but it's not very useful yet. Hang tight, or better yet, contribute!
 >
 >**This project is not affiliated with TIPSTER S.M.B.A. ("Tipster") in any way. It's just a fun personal project driven by curiosity 😀**
+
+<p align="center"><img src="images/tipscout-dashboard.png" alt="tipscout dashboard screenshot">The tipscout dashboard</p>
 
 ## What this does
 This project is a data pipeline and visualization app to analyze deals from Tipster. It scrapes the Tipster website for deals, stores the data in a database, and provides a web interface to visualize the data.
