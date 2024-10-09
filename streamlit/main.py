@@ -6,7 +6,7 @@ import altair as alt
 
 st.set_page_config(layout="wide")
 
-st.title("Database Content Viewer")
+st.title("tipscout Statistics")
 
 
 def fetch_data(db_path):
@@ -27,6 +27,7 @@ def fetch_data(db_path):
             (old_price - new_price) / old_price AS discount_percent
         FROM
             {table_name}
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY deal_id ORDER BY inserted_at DESC) = 1
         """
         df = conn.execute(query).df()
 
@@ -38,6 +39,7 @@ def fetch_data(db_path):
 
 
 # Sidebar for user input
+st.sidebar.image("/app/images/tipscout-logo.png", use_column_width=True)
 st.sidebar.header("Settings")
 db_path = st.sidebar.text_input("Database Path", value="/app/data/tipsterdeals.duckdb")
 refresh_button = st.sidebar.button("Refresh Data")
@@ -54,10 +56,24 @@ if refresh_button or "data" not in st.session_state:
 
 # Check if data is available in session state
 if "data" in st.session_state and st.session_state.data is not None:
-    st.write(f"Displaying {len(st.session_state.data)} rows from the database:")
 
-    # Display the data in a dataframe
-    st.dataframe(st.session_state.data, use_container_width=True)
+        # Active, expired, and sold out deals
+    st.subheader("Deal Status Overview")
+    if "status" in st.session_state.data.columns:
+        status_counts = st.session_state.data["status"].value_counts()
+        active_deals = status_counts.get("ACTIVE", 0)
+        expired_deals = status_counts.get("EXPIRED", 0)
+        sold_out_deals = status_counts.get("SOLD OUT", 0)
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric(label="Active Deals", value=active_deals)
+        with col2:
+            st.metric(label="Expired Deals", value=expired_deals)
+        with col3:
+            st.metric(label="Sold Out Deals", value=sold_out_deals)
+    else:
+        st.warning("Column 'status' is required to calculate deal status overview.")
 
     # Display metrics
     st.subheader("Metrics")
@@ -253,7 +269,7 @@ if "data" in st.session_state and st.session_state.data is not None:
             alt.Chart(unique_deals_per_month)
             .mark_line()
             .encode(
-                x=alt.X("date_added:T", title="Month"),
+                x=alt.X("date_added:T", title="Month", axis=alt.Axis(format="%b %Y")),
                 y=alt.Y("unique_deals:Q", title="Number of Unique Deals"),
             )
             .properties(title="Unique Deals Added Each Month")
@@ -290,7 +306,7 @@ if "data" in st.session_state and st.session_state.data is not None:
             alt.Chart(avg_saving_per_month)
             .mark_line()
             .encode(
-                x=alt.X("date_added:T", title="Month"),
+                x=alt.X("date_added:T", title="Month", axis=alt.Axis(format="%b %Y")),
                 y=alt.Y(
                     "avg_saving:Q",
                     title="Average Saving (%)",
@@ -313,59 +329,110 @@ if "data" in st.session_state and st.session_state.data is not None:
 
         st.altair_chart(avg_saving_chart + points + labels, use_container_width=True)
 
-    # Top merchants by number of deals
-    st.subheader("Top Merchants by Number of Deals")
-    top_merchants = st.session_state.data["merchant_name"].value_counts().head(10)
-    st.bar_chart(top_merchants)
+    # Top merchants by number of deals and merchants with highest average savings
+    col7, col8 = st.columns(2)
 
-    # Merchants with highest average savings
-    st.subheader("Merchants with Highest Average Savings")
-    avg_saving_by_merchant = (
-        st.session_state.data.groupby("merchant_name")["discount_percent"]
-        .mean()
-        .sort_values(ascending=False)
-        .head(10)
-    )
-    st.bar_chart(avg_saving_by_merchant)
+    with col7:
+        st.subheader("Top Merchants by Number of Deals")
+        top_merchants = (
+            st.session_state.data["merchant_name"].value_counts().head(10).reset_index()
+        )
+        top_merchants.columns = ["merchant_name", "deal_count"]
+
+        # Convert deal_count to integers
+        top_merchants["deal_count"] = top_merchants["deal_count"].astype(int)
+
+        # Create a horizontal bar chart using Altair
+        top_merchants_chart = (
+            alt.Chart(top_merchants)
+            .mark_bar()
+            .encode(
+                x=alt.X(
+                    "deal_count:Q", title="Number of Deals", axis=alt.Axis(format="d")
+                ),
+                y=alt.Y("merchant_name:N", sort="-x", title="Merchant Name"),
+                tooltip=["merchant_name:N", "deal_count:Q"],
+            )
+            .properties(title="Top Merchants by Number of Deals")
+        )
+
+        st.altair_chart(top_merchants_chart, use_container_width=True)
+
+    with col8:
+        st.subheader("Merchants with Highest Average Savings")
+        avg_saving_by_merchant = (
+            st.session_state.data.groupby("merchant_name")["discount_percent"]
+            .mean()
+            .sort_values(ascending=False)
+            .head(10)
+            .reset_index()
+        )
+        # Create a horizontal bar chart using Altair with adjusted x-axis scale
+        avg_saving_by_merchant_chart = (
+            alt.Chart(avg_saving_by_merchant)
+            .mark_bar()
+            .encode(
+                x=alt.X(
+                    "discount_percent:Q",
+                    title="Average Saving (%)",
+                    axis=alt.Axis(format="%"),
+                ),
+                y=alt.Y("merchant_name:N", sort="-x", title="Merchant Name"),
+                tooltip=[
+                    alt.Tooltip("merchant_name:N", title="Merchant Name"),
+                    alt.Tooltip(
+                        "discount_percent:Q", title="Average Saving (%)", format=".2%"
+                    ),
+                ],
+            )
+            .properties(title="Merchants with Highest Average Savings")
+        )
+
+        st.altair_chart(avg_saving_by_merchant_chart, use_container_width=True)
 
     # Distribution of savings percentages
-    st.subheader("Distribution of Savings Percentages")
-    hist_values, bin_edges = np.histogram(
-        st.session_state.data["discount_percent"].dropna(), bins=20
-    )
-    st.bar_chart(pd.DataFrame({"count": hist_values}, index=bin_edges[:-1]))
+    # st.subheader("Distribution of Savings Percentages")
+    # hist_values, bin_edges = np.histogram(
+    #     st.session_state.data["discount_percent"].dropna(), bins=20
+    # )
+    # st.bar_chart(pd.DataFrame({"count": hist_values}, index=bin_edges[:-1]))
 
     # Current status of deals
     st.subheader("Current Status of Deals")
     deal_status_counts = st.session_state.data["status"].value_counts()
     st.bar_chart(deal_status_counts)
 
-    # Top locations by number of deals
-    st.subheader("Top Locations by Number of Deals")
-    top_locations = st.session_state.data["location"].value_counts().head(10)
-    st.bar_chart(top_locations)
+    # # Top locations by number of deals
+    # st.subheader("Top Locations by Number of Deals")
+    # top_locations = st.session_state.data["location"].value_counts().head(10)
+    # st.bar_chart(top_locations)
 
-    # Average saving percentage by location
-    st.subheader("Average Saving Percentage by Location")
-    avg_saving_by_location = (
-        st.session_state.data.groupby("location")["discount_percent"]
-        .mean()
-        .sort_values(ascending=False)
-        .head(10)
-    )
-    st.bar_chart(avg_saving_by_location)
+    # # Average saving percentage by location
+    # st.subheader("Average Saving Percentage by Location")
+    # avg_saving_by_location = (
+    #     st.session_state.data.groupby("location")["discount_percent"]
+    #     .mean()
+    #     .sort_values(ascending=False)
+    #     .head(10)
+    # )
+    # st.bar_chart(avg_saving_by_location)
 
-    # Average time to sell out
-    st.subheader("Average Time to Sell Out")
-    if "sold_out_date" in st.session_state.data.columns:
-        st.session_state.data["days_to_sell_out"] = (
-            st.session_state.data["sold_out_date"] - st.session_state.data["date"]
-        ).dt.days
-        avg_days_to_sell_out = st.session_state.data["days_to_sell_out"].mean()
-        st.metric(
-            label="Average Days to Sell Out", value=f"{avg_days_to_sell_out:.2f} days"
-        )
-    else:
-        st.warning(
-            "Column 'sold_out_date' is required to calculate the average time to sell out."
-        )
+    # # Average time to sell out
+    # st.subheader("Average Time to Sell Out")
+    # if "sold_out_date" in st.session_state.data.columns:
+    #     st.session_state.data["days_to_sell_out"] = (
+    #         st.session_state.data["sold_out_date"] - st.session_state.data["date"]
+    #     ).dt.days
+    #     avg_days_to_sell_out = st.session_state.data["days_to_sell_out"].mean()
+    #     st.metric(
+    #         label="Average Days to Sell Out", value=f"{avg_days_to_sell_out:.2f} days"
+    #     )
+    # else:
+    #     st.warning(
+    #         "Column 'sold_out_date' is required to calculate the average time to sell out."
+    #     )
+
+    st.write(f"Displaying {len(st.session_state.data)} rows from the database:")
+
+    # Display the data in a dataframe
+    st.dataframe(st.session_state.data, use_container_width=True)
