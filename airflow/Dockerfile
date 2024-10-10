@@ -17,5 +17,6 @@ WORKDIR $AIRFLOW_HOME
 
 COPY ./airflow/scripts scripts
 RUN chmod +x scripts
+RUN mkdir -p /opt/airflow/data && chown -R $AIRFLOW_UID:0 /opt/airflow/data
 
 USER $AIRFLOW_UID

@@ -16,4 +16,4 @@ restart:
 
 .PHONY: down
 down:
-	$(DOCKER_COMPOSE) down --volumes --rmi all
+	$(DOCKER_COMPOSE) down
