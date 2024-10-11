@@ -10,7 +10,7 @@ st.title("tipscout Statistics")
 
 
 def fetch_data(db_path):
-    conn = duckdb.connect(db_path)
+    conn = duckdb.connect(db_path, read_only=True)
     try:
         tables = conn.execute("SHOW TABLES").fetchall()
         if not tables:

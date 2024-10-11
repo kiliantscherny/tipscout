@@ -80,7 +80,6 @@ x-airflow-common:
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/config:/opt/airflow/config
     - ./airflow/plugins:/opt/airflow/plugins
-    - ./airflow/data:/opt/airflow/data
     - type: bind
       source: ./airflow/data
       target: /opt/airflow/data
@@ -127,9 +126,9 @@ services:
     <<: *airflow-common
     command: webserver
     ports:
-      - "8080:8080"
+      - "8081:8080" # modifying this because I already have something running on port 8080
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "--fail", "http://localhost:8081/health"]
       interval: 30s
       timeout: 10s
       retries: 5
