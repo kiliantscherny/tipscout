@@ -27,10 +27,10 @@ For now, it's a work in progress.
 0. Have Docker & Docker-Compose installed on your machine
 1. Clone the repository
 2. Run `make init` to set everything up for the first time
-3. Go to `http://localhost:8501` to see the visualization app (Streamlit) and `http://localhost:8080` to see the Scheduler (Airflow)
+3. Go to `http://localhost:8501` to see the visualization app (Streamlit) and `http://localhost:8081` to see the Scheduler (Airflow)
 
 >[!IMPORTANT]
->The app is set up to scrape the website once per day. You can adjust this in the `airflow/dags/tipster_dag.py` file if you want. Please scrape responsibly 🧡
+>The app is set up to scrape the website once every 3 hours. You can adjust this in the `airflow/dags/tipster_dag.py` file if you want. Please scrape responsibly 🧡
 
 ## To-do list
 - [ ] Show in greater detail the deals which are currently available
