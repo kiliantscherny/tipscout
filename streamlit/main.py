@@ -55,16 +55,34 @@ refresh_button = st.sidebar.button("Refresh Data")
 
 st.sidebar.markdown(
     """
+    <style>
+        /* Target only the links inside the sidebar */
+        section[data-testid="stSidebar"] a {
+            color: white !important;
+            font-weight: bold;
+            text-decoration: none;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+        /* Override visited and active link colors */
+        section[data-testid="stSidebar"] a:link,
+        section[data-testid="stSidebar"] a:visited,
+        section[data-testid="stSidebar"] a:hover,
+        section[data-testid="stSidebar"] a:active {
+            color: white !important;
+        }
+    </style>
     <a href="https://github.com/kiliantscherny/tipscout" target="_blank">
-        <img src="https://cdn-icons-png.flaticon.com/128/5968/5968866.png" width="25" style="margin-right: 10px;">tipscout GitHub Repo
-    </a>
-    <br>
+        <img src="https://cdn-icons-png.flaticon.com/128/5968/5968866.png" width="25" style="margin-right: 10px;">
+        tipscout GitHub Repo
+    </a> <br>
     <a href="https://www.linkedin.com/in/kiliantscherny" target="_blank">
-        <img src="https://cdn-icons-png.flaticon.com/128/3536/3536505.png" width="25" style="margin-right: 10px;">Find me on LinkedIn
+        <img src="https://cdn-icons-png.flaticon.com/128/3536/3536505.png" width="25" style="margin-right: 10px;">
+        Find me on LinkedIn
     </a>
     """,
     unsafe_allow_html=True,
 )
+
 
 # Main content area
 if refresh_button or "data" not in st.session_state:
