@@ -13,7 +13,7 @@ default_args = {
 
 
 # Define the DAG using the TaskFlow API
-@dag(default_args=default_args, schedule_interval="@hourly", catchup=False)
+@dag(default_args=default_args, schedule_interval="0 */3 * * *", catchup=False)
 def tipster_scraper_dag():
 
     # Scraping Task
