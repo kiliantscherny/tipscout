@@ -3,6 +3,7 @@ import pandas as pd
 import duckdb
 import numpy as np
 import altair as alt
+import os
 
 st.set_page_config(layout="wide")
 
@@ -39,10 +40,31 @@ def fetch_data(db_path):
 
 
 # Sidebar for user input
-st.sidebar.image("images/tipscout-logo.png", use_column_width=True)
-st.sidebar.header("Settings")
-db_path = st.sidebar.text_input("Database Path", value="/app/data/tipsterdeals.duckdb")
+# Determine if running in Docker
+if os.path.exists("/.dockerenv"):
+    st.sidebar.image("/app/images/tipscout-logo.png", use_column_width=True)
+    db_path = st.sidebar.text_input(
+        "Database Path", value="/app/data/tipsterdeals.duckdb"
+    )
+else:
+    st.sidebar.image("images/tipscout-logo.png", use_column_width=True)
+    db_path = st.sidebar.text_input(
+        "Database Path", value="airflow/data/tipsterdeals.duckdb"
+    )
 refresh_button = st.sidebar.button("Refresh Data")
+
+st.sidebar.markdown(
+    """
+    <a href="https://github.com/kiliantscherny/tipscout" target="_blank">
+        <img src="https://cdn-icons-png.flaticon.com/128/5968/5968866.png" width="25" style="margin-right: 10px;">tipscout GitHub Repo
+    </a>
+    <br>
+    <a href="https://www.linkedin.com/in/kiliantscherny" target="_blank">
+        <img src="https://cdn-icons-png.flaticon.com/128/3536/3536505.png" width="25" style="margin-right: 10px;">Find me on LinkedIn
+    </a>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Main content area
 if refresh_button or "data" not in st.session_state:
