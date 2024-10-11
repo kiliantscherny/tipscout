@@ -22,7 +22,7 @@ def fetch_data(db_path):
         SELECT
             *,
             sold + remaining AS total_available,
-            remaining / (sold + remaining) AS left_percent,
+            remaining / (sold + remaining) AS remaining_percent,
             old_price - new_price AS discount_absolute,
             (old_price - new_price) / old_price AS discount_percent
         FROM
@@ -39,7 +39,7 @@ def fetch_data(db_path):
 
 
 # Sidebar for user input
-st.sidebar.image("/app/images/tipscout-logo.png", use_column_width=True)
+st.sidebar.image("images/tipscout-logo.png", use_column_width=True)
 st.sidebar.header("Settings")
 db_path = st.sidebar.text_input("Database Path", value="/app/data/tipsterdeals.duckdb")
 refresh_button = st.sidebar.button("Refresh Data")
@@ -56,6 +56,84 @@ if refresh_button or "data" not in st.session_state:
 
 # Check if data is available in session state
 if "data" in st.session_state and st.session_state.data is not None:
+
+    # Filter for active deals
+    active_deals_df = st.session_state.data[st.session_state.data["status"] == "ACTIVE"]
+
+    if not active_deals_df.empty:
+        st.subheader("Active Deals")
+        # Create a new DataFrame with deal_id, merchant name, number remaining, number sold, total available, discount percentage, remaining percentage, and full_url as a link
+        active_deals_display = active_deals_df[
+            [
+                "deal_id",
+                "merchant_name",
+                "total_available",
+                "sold",
+                "remaining",
+                "remaining_percent",
+                "discount_percent",
+                "full_url",
+            ]
+        ].copy()
+
+        # Convert discount_percent and remaining_percent to percentage format
+        active_deals_display["discount_percent"] = (
+            active_deals_display["discount_percent"] * 100
+        )
+        active_deals_display["discount_percent"] = active_deals_display[
+            "discount_percent"
+        ].map("{:.2f}%".format)
+
+        # Apply color based on remaining_percent before converting to string
+        def color_remaining(val):
+            color = "red" if val <= 0.2 else "orange" if val <= 0.5 else "green"
+            return f"background-color: {color}"
+
+        # Apply color based on discount_percent before converting to string
+        def color_discount(val):
+            color = "green" if val >= 50 else "orange" if val >= 20 else "red"
+            return f"background-color: {color}"
+
+        active_deals_display["remaining_percent"] = (
+            active_deals_display["remaining_percent"] * 100
+        )
+        active_deals_display["remaining_percent"] = active_deals_display[
+            "remaining_percent"
+        ].map("{:.2f}%".format)
+
+        active_deals_display["full_url"] = active_deals_display.apply(
+            lambda row: f'<a href="{row["full_url"]}" target="_blank">{row["full_url"]}</a>',
+            axis=1,
+        )
+
+        # Clean up column names
+        active_deals_display.columns = [
+            "Deal ID",
+            "Merchant Name",
+            "Total Available",
+            "Sold",
+            "Remaining",
+            "Remaining Percent",
+            "Discount Percent",
+            "Link to Deal",
+        ]
+
+        # Apply color formatting
+        styled_df = active_deals_display.style.applymap(
+            lambda x: color_remaining(float(x.strip("%")) / 100) if "%" in x else "",
+            subset=["Remaining Percent"],
+        ).applymap(
+            lambda x: color_discount(float(x.strip("%"))) if "%" in x else "",
+            subset=["Discount Percent"],
+        )
+
+        # Display the DataFrame with links and color formatting
+        st.write(
+            styled_df.to_html(escape=False, index=False),
+            unsafe_allow_html=True,
+        )
+    else:
+        st.warning("No active deals found.")
 
     # Active, expired, and sold out deals
     st.subheader("Deal Status Overview")
