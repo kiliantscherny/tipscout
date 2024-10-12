@@ -19,4 +19,8 @@ COPY ./airflow/scripts scripts
 RUN chmod +x scripts
 RUN mkdir -p /opt/airflow/data && chown -R $AIRFLOW_UID:0 /opt/airflow/data
 
+# Ensure the airflow user has read/write permissions
+RUN chmod 775 /opt/airflow/data
+RUN touch /opt/airflow/data/tipsterdeals.duckdb && chmod 664 /opt/airflow/data/tipsterdeals.duckdb && chown $AIRFLOW_UID:0 /opt/airflow/data/tipsterdeals.duckdb
+
 USER $AIRFLOW_UID
