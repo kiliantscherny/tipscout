@@ -80,10 +80,11 @@ x-airflow-common:
     - ./airflow/logs:/opt/airflow/logs
     - ./airflow/config:/opt/airflow/config
     - ./airflow/plugins:/opt/airflow/plugins
-    - type: bind
-      source: ./airflow/data
-      target: /opt/airflow/data
-      read_only: false
+    - ./airflow/data:/opt/airflow/data
+    # - type: bind
+    #   source: ./airflow/data
+    #   target: /opt/airflow/data
+    #   read_only: false
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -198,6 +199,10 @@ services:
     # yamllint disable rule:line-length
     command:
       - -c
+      - |
+        mkdir -p /opt/airflow/data
+        chown -R "${AIRFLOW_UID}:0" /opt/airflow/data
+        chmod 775 /opt/airflow/data
       - |
         if [[ -z "${AIRFLOW_UID}" ]]; then
           echo
