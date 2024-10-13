@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 from include.scraper.scraper import TipsterScraper
 from include.database.database import DuckDBHandler
+import logging
 
 # Default arguments for the DAG
 default_args = {
@@ -20,15 +21,27 @@ def tipster_scraper_dag():
     @task()
     def scrape_data() -> pd.DataFrame:
         scraper = TipsterScraper(main_url="https://www.tipster.io/team")
+        logging.info("Scraping data from: %s", scraper.main_url)
         return scraper.scrape()
 
     # Database Insertion Task
     @task()
     def store_data(deals_df: pd.DataFrame):
-        db_handler = DuckDBHandler("/opt/airflow/data/tipsterdeals.duckdb")
+        db_path = "/opt/airflow/data/tipsterdeals.duckdb"
+
+        # Log database path for debugging
+        logging.info("Database path: %s", db_path)
+
+        db_handler = DuckDBHandler(db_path)
+
         if not db_handler.table_exists("tipsterdeals"):
+            logging.info("Table tipsterdeals does not exist. Creating table.")
             db_handler.create_table()
+
+        logging.info("Inserting data into table tipsterdeals.")
         db_handler.insert_data(deals_df)
+
+        logging.info("Closing database connection.")
         db_handler.close()
 
     # Workflow: scrape -> store

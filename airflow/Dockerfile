@@ -18,9 +18,9 @@ WORKDIR $AIRFLOW_HOME
 COPY ./airflow/scripts scripts
 RUN chmod +x scripts
 
-# Create data directory and set permissions
-RUN mkdir -p /opt/airflow/data && \
-    chown -R airflow:0 /opt/airflow/data && \
-    chmod 775 /opt/airflow/data
+# Create data directory
+RUN mkdir -p /opt/airflow/data 
 
-USER airflow
+USER $AIRFLOW_UID 
+
+COPY ./airflow/init_airflow.sh /docker-entrypoint-initdb.d/init_airflow.sh

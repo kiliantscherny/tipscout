@@ -4,6 +4,12 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 import hashlib
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 class TipsterScraper:
@@ -12,58 +18,47 @@ class TipsterScraper:
     def __init__(self, main_url):
         self.main_url = main_url
         self.tipsterdeals = []
+        logging.info(f"Initialized TipsterScraper with main URL: {self.main_url}")
 
     def _fetch_main_page(self) -> BeautifulSoup:
-        """Fetch the content of the main page of the website
-
-        :return: BeautifulSoup object of the main page
-        """
+        logging.info("Fetching the main page content")
         response = requests.get(self.main_url)
         soup = BeautifulSoup(response.text, "html.parser")
+        logging.info("Fetched and parsed the main page content")
         return soup
 
     def _extract_urls(self, soup) -> list:
-        """Extract the URLs of all the current deals from the main page.
-        Note: this excludes URL with team ID 31361, which is the Gift Card.
-
-        :param soup: BeautifulSoup object of the main page
-        :return: List of URLs of the current deals
-        """
+        logging.info("Extracting URLs from the main page")
         links = soup.find_all("a", href=True)
         pattern = re.compile(r"^/team/(?!31361)\d+\.html$")
-        return [link["href"] for link in links if pattern.match(link["href"])]
+        urls = [link["href"] for link in links if pattern.match(link["href"])]
+        logging.info(f"Extracted {len(urls)} URLs from the main page")
+        return urls
 
     def _extract_deal_id(self, url) -> str:
-        """Extract the deal ID from the deal's URL
-
-        :param url: URL of the deal
-        :return: String of the deal ID
-        """
+        logging.info(f"Extracting deal ID from URL: {url}")
         match = re.search(r"/team/(\d+)\.html$", url)
         if match:
             deal_id = match.group(1)
+            logging.info(f"Extracted deal ID: {deal_id}")
             return deal_id
+        logging.warning(f"Failed to extract deal ID from URL: {url}")
         return None
 
     def _extract_date_from_deal_url(self, url) -> str:
-        """Extract the date from the deal's URL
-
-        :param url: URL of the deal
-        :return: String of the date the deal was added, in the format YYYY-MM-DD, extracted from the image URL
-        """
+        logging.info(f"Extracting date from deal URL: {url}")
         match = re.search(r"(\d{4})/(\d{4})", url)
         if match:
             year = match.group(1)
             month_day = match.group(2)
-            return f"{year}-{month_day[:2]}-{month_day[2:]}"  # Format: YYYY-MM-DD
+            date = f"{year}-{month_day[:2]}-{month_day[2:]}"  # Format: YYYY-MM-DD
+            logging.info(f"Extracted date: {date}")
+            return date
+        logging.warning(f"Failed to extract date from URL: {url}")
         return None
 
     def _get_status_sold_remaining(self, page_soup) -> tuple:
-        """Extract the status, sold, and remaining information of the deal
-
-        :param page_soup: BeautifulSoup object of the deal's page
-        :return: Tuple containing the status, sold, and remaining information of the deal
-        """
+        logging.info("Extracting status, sold, and remaining information")
         status = "AVAILABLE"  # Default status is "AVAILABLE"
         deal_status_div = page_soup.find("div", id="dealbuttonclosed")
         if deal_status_div:
@@ -78,14 +73,11 @@ class TipsterScraper:
             if page_soup.find("div", id="nowleft")
             else None
         )
+        logging.info(f"Status: {status}, Sold: {sold}, Remaining: {remaining}")
         return status, sold, remaining
 
     def _get_price_info(self, page_soup) -> tuple:
-        """Extract the price information of the deal
-
-        :param page_soup: BeautifulSoup object of the deal's page
-        :return: Tuple containing the merchant name, old price, old currency, new price, and new currency
-        """
+        logging.info("Extracting price information")
         old_price = (
             page_soup.find("span", id="dealpriceold").text.strip()
             if page_soup.find("span", id="dealpriceold")
@@ -111,23 +103,19 @@ class TipsterScraper:
             if page_soup.find("div", id="teamtoppartner")
             else None
         )
+        logging.info(
+            f"Merchant: {merchant_name}, Old Price: {old_price} {old_currency}, New Price: {new_price} {new_currency}"
+        )
         return merchant_name, old_price, old_currency, new_price, new_currency
 
     def _get_location_info(self, page_soup) -> str:
-        """Extract the location information of the deal as a string.
-
-        :param page_soup: BeautifulSoup object of the deal's page
-        :return: Comma-separated, quote-encased string of locations
-        """
-        # Find the accordion item for "WHERE"
+        logging.info("Extracting location information")
         where_section = page_soup.find("span", text="+ WHERE")
         locations = []
         if where_section:
             where_content = where_section.find_next("div", class_="accordion__content")
             if where_content and where_content.p:
-                # Get the raw HTML text
                 raw_html = where_content.p.decode_contents()
-                # Use regex to clean up the HTML
                 clean_text = re.sub(
                     r"<br/> ", ", ", raw_html
                 )  # Replace single <br/> with a comma
@@ -135,46 +123,33 @@ class TipsterScraper:
                     r"<br/><br/>", "', '", clean_text
                 )  # Replace double <br/> with ', '
                 clean_text = clean_text.replace("<br>", "")  # Remove any remaining <br>
-                # Remove HTML tags and split by comma
                 raw_locations = clean_text.split("', '")
-                # Strip whitespace and format each address
                 locations = [f"'{loc.strip()}'" for loc in raw_locations if loc.strip()]
-
-        # Create a comma-separated string of locations
-        return ", ".join(locations)
+        location_str = ", ".join(locations)
+        logging.info(f"Extracted locations: {location_str}")
+        return location_str
 
     def _get_hours_info(self, page_soup) -> str:
-        """Extract the hours information of the deal
-
-        :param page_soup: BeautifulSoup object of the deal's page
-        :return: String of the hours of the deal
-        """
-        # Find the accordion item for "HOURS"
+        logging.info("Extracting hours information")
         hours_section = page_soup.find("span", text="+ HOURS")
         hours = "No Hours Found"
         if hours_section:
             hours_content = hours_section.find_next("div", class_="accordion__content")
             if hours_content and hours_content.p:
                 hours = hours_content.p.text.strip()
+        logging.info(f"Extracted hours: {hours}")
         return hours
 
     def _retrieve_deal_info(self, url) -> dict:
-        """Retrieves all of the details of a deal from its URL
-
-        :param url: URL of the deal
-        :return: Dictionary containing the details of the deal
-        """
+        logging.info(f"Retrieving deal information from URL: {url}")
         full_url = self.base_url + url
         page_response = requests.get(full_url)
         page_soup = BeautifulSoup(page_response.text, "html.parser")
 
-        # Extract necessary details
-        # Get the deal's name
         deal_description = (
             page_soup.find("h1").text.strip() if page_soup.find("h1") else None
         )
         deal_id = self._extract_deal_id(url)
-        # Get the date the deal was added
         date_added = (
             self._extract_date_from_deal_url(
                 page_soup.find("meta", property="og:image")["content"]
@@ -182,22 +157,16 @@ class TipsterScraper:
             if page_soup.find("meta", property="og:image")
             else None
         )
-        # Get the location of the deal
         location = self._get_location_info(page_soup)
-        # Get the hours of the deal
         hours = self._get_hours_info(page_soup)
-        # Get the status, sold, and remaining information of the deal
         status, sold, remaining = self._get_status_sold_remaining(page_soup)
-        # Get the price information of the deal
         merchant_name, old_price, old_currency, new_price, new_currency = (
             self._get_price_info(page_soup)
         )
-        # Get the current timestamp to indicate when the deal was scraped
         inserted_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        # Generate a surrogate key for the deal
         surrogate_key = hashlib.md5(f"{url}{inserted_at}".encode()).hexdigest()
 
-        return {
+        deal_info = {
             "surrogate_key": surrogate_key,
             "deal_id": deal_id,
             "full_url": full_url,
@@ -215,15 +184,15 @@ class TipsterScraper:
             "new_currency": new_currency,
             "inserted_at": inserted_at,
         }
+        logging.info(f"Retrieved deal information: {deal_info}")
+        return deal_info
 
     def scrape(self) -> pd.DataFrame:
-        """Scrape the website for all the current deals and return them in a DataFrame
-
-        :return: DataFrame containing all the current deals
-        """
+        logging.info("Starting the scraping process")
         main_page_soup = self._fetch_main_page()
         filtered_urls = self._extract_urls(main_page_soup)
         for url in filtered_urls:
             deal_info = self._retrieve_deal_info(url)
             self.tipsterdeals.append(deal_info)
+        logging.info("Scraping process completed")
         return pd.DataFrame(self.tipsterdeals)

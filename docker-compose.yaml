@@ -81,10 +81,7 @@ x-airflow-common:
     - ./airflow/config:/opt/airflow/config
     - ./airflow/plugins:/opt/airflow/plugins
     - ./airflow/data:/opt/airflow/data
-    # - type: bind
-    #   source: ./airflow/data
-    #   target: /opt/airflow/data
-    #   read_only: false
+    - ./airflow/init_airflow.sh:/docker-entrypoint-initdb.d/init_airflow.sh
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -200,10 +197,6 @@ services:
     command:
       - -c
       - |
-        mkdir -p /opt/airflow/data
-        chown -R "${AIRFLOW_UID}:0" /opt/airflow/data
-        chmod 775 /opt/airflow/data
-      - |
         if [[ -z "${AIRFLOW_UID}" ]]; then
           echo
           echo -e "\033[1;33mWARNING!!!: AIRFLOW_UID not set!\e[0m"
@@ -260,6 +253,7 @@ services:
     user: "0:0"
     volumes:
       - ./airflow:/sources
+      - ./airflow/init_airflow.sh:/docker-entrypoint-initdb.d/init_airflow.sh # Add this line
 
   airflow-cli:
     <<: *airflow-common
