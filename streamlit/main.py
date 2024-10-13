@@ -508,47 +508,10 @@ if "data" in st.session_state and st.session_state.data is not None:
 
         st.altair_chart(avg_saving_by_merchant_chart, use_container_width=True)
 
-    # Distribution of savings percentages
-    # st.subheader("Distribution of Savings Percentages")
-    # hist_values, bin_edges = np.histogram(
-    #     st.session_state.data["discount_percent"].dropna(), bins=20
-    # )
-    # st.bar_chart(pd.DataFrame({"count": hist_values}, index=bin_edges[:-1]))
-
     # Current status of deals
     st.subheader("Current Status of Deals")
     deal_status_counts = st.session_state.data["status"].value_counts()
     st.bar_chart(deal_status_counts)
-
-    # # Top locations by number of deals
-    # st.subheader("Top Locations by Number of Deals")
-    # top_locations = st.session_state.data["location"].value_counts().head(10)
-    # st.bar_chart(top_locations)
-
-    # # Average saving percentage by location
-    # st.subheader("Average Saving Percentage by Location")
-    # avg_saving_by_location = (
-    #     st.session_state.data.groupby("location")["discount_percent"]
-    #     .mean()
-    #     .sort_values(ascending=False)
-    #     .head(10)
-    # )
-    # st.bar_chart(avg_saving_by_location)
-
-    # # Average time to sell out
-    # st.subheader("Average Time to Sell Out")
-    # if "sold_out_date" in st.session_state.data.columns:
-    #     st.session_state.data["days_to_sell_out"] = (
-    #         st.session_state.data["sold_out_date"] - st.session_state.data["date"]
-    #     ).dt.days
-    #     avg_days_to_sell_out = st.session_state.data["days_to_sell_out"].mean()
-    #     st.metric(
-    #         label="Average Days to Sell Out", value=f"{avg_days_to_sell_out:.2f} days"
-    #     )
-    # else:
-    #     st.warning(
-    #         "Column 'sold_out_date' is required to calculate the average time to sell out."
-    #     )
 
     st.write(f"Displaying {len(st.session_state.data)} rows from the database:")
 
