@@ -2,7 +2,8 @@
 <h1 align="center"><img src="images/tipscout-logo.png" alt="tipscout logo"></h1>
 <h2 align="center"> tipscout: Stats about Tipster deals </h2>
 <p align="center"> A data pipeline and visualization app to analyze deals from Tipster.</p>
-<p align="center"><a href="https://tipscout.streamlit.app/"><b>See it on Streamlit now ↗</b></a></p>
+<p align="center"><a href="https://tipscout.streamlit.app/"><img src="https://static.streamlit.io/badges/streamlit_badge_black_white.svg" alt="See it on Streamlit now"></a></p>
+
 
 >[!NOTE]
 >This project is very much a Work In Progress. It works, but it's not very useful yet. Hang tight, or better yet, contribute!
