@@ -59,7 +59,7 @@ class TipsterScraper:
 
     def _get_status_sold_remaining(self, page_soup) -> tuple:
         logging.info("Extracting status, sold, and remaining information")
-        status = "AVAILABLE"  # Default status is "AVAILABLE"
+        status = "ACTIVE"  # Default status is "ACTIVE"
         deal_status_div = page_soup.find("div", id="dealbuttonclosed")
         if deal_status_div:
             status = "SOLD OUT" if "SOLD OUT" in deal_status_div.text else "EXPIRED"
@@ -191,8 +191,13 @@ class TipsterScraper:
         logging.info("Starting the scraping process")
         main_page_soup = self._fetch_main_page()
         filtered_urls = self._extract_urls(main_page_soup)
-        for url in filtered_urls:
+        total_urls = len(filtered_urls)
+        logging.info(f"Total URLs to process: {total_urls}")
+
+        for index, url in enumerate(filtered_urls, start=1):
+            logging.info(f"\nProcessing URL {index}/{total_urls}: {url}\n")
             deal_info = self._retrieve_deal_info(url)
             self.tipsterdeals.append(deal_info)
+
         logging.info("Scraping process completed")
         return pd.DataFrame(self.tipsterdeals)

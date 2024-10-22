@@ -18,9 +18,16 @@ WORKDIR $AIRFLOW_HOME
 COPY ./airflow/scripts scripts
 RUN chmod +x scripts
 
-# Create data directory
-RUN mkdir -p /opt/airflow/data 
+# Create airflow user and group if not exists
+RUN groupadd -f airflow && \
+    id -u airflow &>/dev/null || useradd -m -d /opt/airflow -g airflow airflow
 
-USER $AIRFLOW_UID 
+# Create data directory and set permissions
+RUN mkdir -p /opt/airflow/data && \
+    chown -R airflow:airflow /opt/airflow/data && \
+    chmod -R 775 /opt/airflow/data
+
+# Switch back to airflow user
+USER $AIRFLOW_UID
 
 COPY ./airflow/init_airflow.sh /docker-entrypoint-initdb.d/init_airflow.sh
