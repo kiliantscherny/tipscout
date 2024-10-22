@@ -20,7 +20,7 @@ def tipster_scraper_dag():
     # Scraping Task
     @task()
     def scrape_data() -> pd.DataFrame:
-        scraper = TipsterScraper(main_url="https://www.tipster.io/team")
+        scraper = TipsterScraper(main_url="https://www.tipster.io/campaigns")
         logging.info("Scraping data from: %s", scraper.main_url)
         return scraper.scrape()
 
