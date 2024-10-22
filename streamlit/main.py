@@ -98,7 +98,7 @@ if refresh_button or "data" not in st.session_state:
 if "data" in st.session_state and st.session_state.data is not None:
     # Check if not running in Docker and display a warning box
     if not os.path.exists("/.dockerenv"):
-        st.warning("⚠️ Heads up: This data contains some demo rows and is not updated in real-time.")
+        st.warning("⚠️ Heads up: This data is not updated in real-time.")
 
     # Filter for active deals
     active_deals_df = st.session_state.data[st.session_state.data["status"] == "ACTIVE"]
