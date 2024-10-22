@@ -4,17 +4,26 @@ import pandas as pd
 from include.scraper.scraper import TipsterScraper
 from include.database.database import DuckDBHandler
 import logging
+import pendulum
+
+local_tz = pendulum.timezone("Europe/Copenhagen")
 
 # Default arguments for the DAG
 default_args = {
     "owner": "user",
-    "start_date": datetime(2023, 1, 1),
+    "start_date": datetime(2023, 1, 1, tzinfo=local_tz),
     "retries": 1,
 }
 
 
 # Define the DAG using the TaskFlow API
-@dag(default_args=default_args, schedule_interval="0 */3 * * *", catchup=False)
+# Set the interval to be at 5 past the hour every 3 hours, starting at 1AM Copenhagen time
+# Deals are added at 7:01AM, so checking just after then is best and then every few hours as well
+@dag(
+    default_args=default_args,
+    schedule_interval="5 1,4,7,10,13,16,19,22 * * *",
+    catchup=False,
+)
 def tipster_scraper_dag():
 
     # Scraping Task
