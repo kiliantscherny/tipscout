@@ -15,24 +15,34 @@ logging.basicConfig(
 class TipsterScraper:
     base_url = "https://www.tipster.io"
 
-    def __init__(self, main_url):
+    def __init__(self, main_url, db_handler):
         self.main_url = main_url
+        self.db_handler = db_handler
         self.tipsterdeals = []
         logging.info(f"Initialized TipsterScraper with main URL: {self.main_url}")
 
     def _fetch_main_page(self) -> BeautifulSoup:
-        logging.info("Fetching the main page content")
+        logging.info(f"Fetching main page content from URL: {self.main_url}")
         response = requests.get(self.main_url)
+        if response.status_code == 200:
+            logging.info("Successfully fetched main page content.")
+        else:
+            logging.error(
+                f"Failed to fetch main page content. Status code: {response.status_code}"
+            )
         soup = BeautifulSoup(response.text, "html.parser")
-        logging.info("Fetched and parsed the main page content")
         return soup
 
     def _extract_urls(self, soup) -> list:
-        logging.info("Extracting URLs from the main page")
-        links = soup.find_all("a", href=True)
-        pattern = re.compile(r"^/team/(?!31361)\d+\.html$")
-        urls = [link["href"] for link in links if pattern.match(link["href"])]
-        logging.info(f"Extracted {len(urls)} URLs from the main page")
+        logging.info("Extracting URLs from the main page content.")
+        urls = []
+        for link in soup.find_all("a", href=True):
+            url = link["href"]
+            if "team" in url and "31361" not in url:
+                full_url = f"{self.base_url}{url}"
+                urls.append(full_url)
+                logging.debug(f"Extracted URL: {full_url}")
+        logging.info(f"Extracted {len(urls)} URLs from the main page.")
         return urls
 
     def _extract_deal_id(self, url) -> str:
@@ -142,7 +152,9 @@ class TipsterScraper:
 
     def _retrieve_deal_info(self, url) -> dict:
         logging.info(f"Retrieving deal information from URL: {url}")
-        full_url = self.base_url + url
+        full_url = (
+            f"{self.base_url}{url}" if url.startswith("/") else f"{self.base_url}/{url}"
+        )
         page_response = requests.get(full_url)
         page_soup = BeautifulSoup(page_response.text, "html.parser")
 
@@ -192,12 +204,19 @@ class TipsterScraper:
         main_page_soup = self._fetch_main_page()
         filtered_urls = self._extract_urls(main_page_soup)
         total_urls = len(filtered_urls)
-        logging.info(f"Total URLs to process: {total_urls}")
+        logging.info(f"Total URLs to scrape: {total_urls}")
 
-        for index, url in enumerate(filtered_urls, start=1):
-            logging.info(f"\nProcessing URL {index}/{total_urls}: {url}\n")
+        for url in filtered_urls:
+            deal_id = self._extract_deal_id(url)
+            query = f"SELECT status FROM tipsterdeals WHERE deal_id = '{deal_id}' ORDER BY inserted_at DESC LIMIT 1"
+            result = self.db_handler.conn.execute(query).fetchone()
+            if result and result[0] in ["SOLD OUT", "EXPIRED"]:
+                logging.info(f"Skipping URL {url} as it is {result[0]}")
+                continue
+
             deal_info = self._retrieve_deal_info(url)
             self.tipsterdeals.append(deal_info)
 
+        df = pd.DataFrame(self.tipsterdeals)
         logging.info("Scraping process completed")
-        return pd.DataFrame(self.tipsterdeals)
+        return df
