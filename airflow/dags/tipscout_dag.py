@@ -6,6 +6,10 @@ from include.database.database import DuckDBHandler
 import logging
 import pendulum
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 local_tz = pendulum.timezone("Europe/Copenhagen")
 
 # Default arguments for the DAG
@@ -29,34 +33,34 @@ def tipster_scraper_dag():
     # Scraping Task
     @task()
     def scrape_data() -> pd.DataFrame:
-        scraper = TipsterScraper(main_url="https://www.tipster.io/campaigns")
-        logging.info("Scraping data from: %s", scraper.main_url)
-        return scraper.scrape()
+        logger.info("Starting the data scraping task.")
+        db_handler = DuckDBHandler("/opt/airflow/data/tipsterdeals.duckdb")
+        scraper = TipsterScraper(
+            main_url="https://www.tipster.io/campaigns", db_handler=db_handler
+        )
+        deals_df = scraper.scrape()
+        logger.info("Data scraping task completed successfully.")
+        logger.debug(f"Scraped data: {deals_df.head()}")
+        return deals_df
 
     # Database Insertion Task
     @task()
     def store_data(deals_df: pd.DataFrame):
-        db_path = "/opt/airflow/data/tipsterdeals.duckdb"
-
-        # Log database path for debugging
-        logging.info("Database path: %s", db_path)
-
-        db_handler = DuckDBHandler(db_path)
-
+        logger.info("Starting the data storage task.")
+        db_handler = DuckDBHandler("/opt/airflow/data/tipsterdeals.duckdb")
         if not db_handler.table_exists("tipsterdeals"):
-            logging.info("Table tipsterdeals does not exist. Creating table.")
+            logger.info("Table 'tipsterdeals' does not exist. Creating table.")
             db_handler.create_table()
-
-        logging.info("Inserting data into table tipsterdeals.")
+        else:
+            logger.info("Table 'tipsterdeals' already exists.")
         db_handler.insert_data(deals_df)
-
-        logging.info("Closing database connection.")
+        logger.info("Data inserted into 'tipsterdeals' table successfully.")
         db_handler.close()
+        logger.info("Data storage task completed successfully.")
 
     # Workflow: scrape -> store
     deals_df = scrape_data()
     store_data(deals_df)
 
 
-# Instantiate the DAG
 tipster_scraper_dag = tipster_scraper_dag()
