@@ -1,0 +1,12 @@
+[project]
+name = "tipscout"
+version = "0.1.0"
+description = "Tipster deal scraper and analytics dashboard"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4>=4.12.2",
+    "duckdb>=1.4.0",
+    "pandas>=2.3.2",
+    "requests>=2.32.5",
+]

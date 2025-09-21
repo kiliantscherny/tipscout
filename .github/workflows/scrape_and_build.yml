@@ -1,0 +1,71 @@
+name: Scrape Data and Build Evidence Dashboard
+
+on:
+  push:
+    branches: ["main"]
+  schedule:
+    # Run at 5 past the hour every 3 hours (matching original Airflow schedule)
+    - cron: "5 1,4,7,10,13,16,19,22 * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install Python dependencies
+        run: uv sync
+
+      - name: Create data directory
+        run: mkdir -p sources/tipster_data
+
+      - name: Scrape tipster data and store in DuckDB
+        run: uv run python main.py
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Evidence dependencies
+        run: npm install
+
+      - name: Build Evidence dashboard
+        env:
+          BASE_PATH: "/${{ github.event.repository.name }}"
+        run: |
+          npm run sources
+          npm run build
+
+      - name: Upload Artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "build/${{ github.event.repository.name }}"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

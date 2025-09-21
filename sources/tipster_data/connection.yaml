@@ -1,0 +1,4 @@
+name: tipster_data
+type: duckdb
+options:
+  filename: tipsterdeals.duckdb
