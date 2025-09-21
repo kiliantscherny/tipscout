@@ -1,0 +1,77 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv with caching
+        uses: astral-sh/setup-uv@v6
+        with:
+          activate-environment: true
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install Python dependencies with timing
+        run: |
+          echo "📦 [tipscout] Installing dependencies..."
+          start_time=$(date +%s)
+          uv sync --locked
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "✅ [tipscout] Dependencies installed in ${duration}s"
+
+      - name: Fetch deals data and convert to DuckDB
+        run: uv run main.py
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: build
+        env:
+          BASE_PATH: "/${{ github.event.repository.name }}"
+        run: |
+          npm run sources
+          npm run build
+
+      - name: Upload Artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "build/${{ github.event.repository.name }}"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

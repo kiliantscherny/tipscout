@@ -30,14 +30,14 @@ class TipsterScraper:
     def _extract_urls(self, soup) -> list:
         logging.info("Extracting URLs from the main page")
         links = soup.find_all("a", href=True)
-        pattern = re.compile(r"^/team/(?!31361)\d+\.html$")
+        pattern = re.compile(r"^/drop/\d+\.html$")
         urls = [link["href"] for link in links if pattern.match(link["href"])]
         logging.info(f"Extracted {len(urls)} URLs from the main page")
         return urls
 
     def _extract_deal_id(self, url) -> str:
         logging.info(f"Extracting deal ID from URL: {url}")
-        match = re.search(r"/team/(\d+)\.html$", url)
+        match = re.search(r"/drop/(\d+)\.html$", url)
         if match:
             deal_id = match.group(1)
             logging.info(f"Extracted deal ID: {deal_id}")
@@ -63,16 +63,23 @@ class TipsterScraper:
         deal_status_div = page_soup.find("div", id="dealbuttonclosed")
         if deal_status_div:
             status = "SOLD OUT" if "SOLD OUT" in deal_status_div.text else "EXPIRED"
-        sold = (
-            page_soup.find("div", id="nowsold").text.strip().split()[0]
-            if page_soup.find("div", id="nowsold")
-            else None
-        )
-        remaining = (
-            page_soup.find("div", id="nowleft").text.strip().split()[0]
-            if page_soup.find("div", id="nowleft")
-            else None
-        )
+
+        # Safely extract sold count
+        sold = None
+        sold_div = page_soup.find("div", id="nowsold")
+        if sold_div and sold_div.text.strip():
+            sold_parts = sold_div.text.strip().split()
+            if sold_parts:
+                sold = sold_parts[0]
+
+        # Safely extract remaining count
+        remaining = None
+        remaining_div = page_soup.find("div", id="nowleft")
+        if remaining_div and remaining_div.text.strip():
+            remaining_parts = remaining_div.text.strip().split()
+            if remaining_parts:
+                remaining = remaining_parts[0]
+
         logging.info(f"Status: {status}, Sold: {sold}, Remaining: {remaining}")
         return status, sold, remaining
 
@@ -196,8 +203,12 @@ class TipsterScraper:
 
         for index, url in enumerate(filtered_urls, start=1):
             logging.info(f"\nProcessing URL {index}/{total_urls}: {url}\n")
-            deal_info = self._retrieve_deal_info(url)
-            self.tipsterdeals.append(deal_info)
+            try:
+                deal_info = self._retrieve_deal_info(url)
+                self.tipsterdeals.append(deal_info)
+            except Exception as e:
+                logging.error(f"Error processing URL {url}: {e}")
+                continue
 
         logging.info("Scraping process completed")
         return pd.DataFrame(self.tipsterdeals)
