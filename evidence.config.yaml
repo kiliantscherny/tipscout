@@ -2,6 +2,9 @@ appearance:
   default: system
   switcher: true
 
+deployment:
+  basePath: /tipscout
+
 theme:
   colorPalettes:
     default:
