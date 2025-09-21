@@ -9,10 +9,11 @@
 <EvidenceDefaultLayout
   {data}
   logo="{base}/tipscout-logo.png"
-  hideSidebar={false}
+  hideSidebar={true}
   hideBreadcrumbs={true}
   hideTOC={true}
   neverShowQueries={true}
+  githubRepo="https://github.com/kiliantscherny/tipscout"
 >
   <slot slot="content" />
 </EvidenceDefaultLayout>

@@ -1,5 +1,20 @@
 SELECT
-    *,
+    surrogate_key,
+    deal_id,
+    full_url,
+    status,
+    sold,
+    remaining,
+    deal_description,
+    date_added,
+    location,
+    hours,
+    merchant_name,
+    old_price,
+    old_currency,
+    new_price,
+    new_currency,
+    inserted_at,
     -- Handle non-numeric values in sold/remaining columns
     CASE 
         WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL 

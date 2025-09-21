@@ -6,57 +6,57 @@ theme:
   colorPalettes:
     default:
       light:
-        - "#236aa4"
-        - "#45a1bf"
-        - "#a5cdee"
-        - "#8dacbf"
-        - "#85c7c6"
-        - "#d2c6ac"
-        - "#f4b548"
-        - "#8f3d56"
-        - "#71b9f4"
-        - "#46a485"
+        - "#ff6b35" # Tipster Orange
+        - "#e55a2b" # Darker Orange
+        - "#ff8659" # Light Orange
+        - "#1a1a1a" # Near Black
+        - "#000000" # Pure Black
+        - "#ffffff" # Pure White
+        - "#f59e0b" # Amber
+        - "#10b981" # Green
+        - "#ef4444" # Red
+        - "#6b7280" # Gray
       dark:
-        - "#236aa4"
-        - "#45a1bf"
-        - "#a5cdee"
-        - "#8dacbf"
-        - "#85c7c6"
-        - "#d2c6ac"
-        - "#f4b548"
-        - "#8f3d56"
-        - "#71b9f4"
-        - "#46a485"
+        - "#ff6b35" # Tipster Orange
+        - "#ff8659" # Light Orange
+        - "#e55a2b" # Darker Orange
+        - "#ffffff" # Pure White
+        - "#f3f4f6" # Light Gray
+        - "#1a1a1a" # Near Black
+        - "#f59e0b" # Amber
+        - "#10b981" # Green
+        - "#ef4444" # Red
+        - "#9ca3af" # Medium Gray
   colorScales:
     default:
       light:
-        - "#ADD8E6"
-        - "#00008B"
+        - "#fff5f2" # Very Light Orange
+        - "#ff6b35" # Tipster Orange
       dark:
-        - "#ADD8E6"
-        - "#00008B"
+        - "#1f1f1f" # Dark Gray
+        - "#ff8659" # Light Orange
   colors:
     primary:
-      light: "#2563eb"
-      dark: "#3b82f6"
+      light: "#ff6b35" # Tipster Orange
+      dark: "#ff8659" # Light Orange for dark mode
     accent:
-      light: "#c2410c"
-      dark: "#fdba74"
+      light: "#e55a2b" # Darker Orange
+      dark: "#ff6b35" # Main Orange for dark mode
     base:
-      light: "#ffffff"
-      dark: "#09090b"
+      light: "#ffffff" # Pure White
+      dark: "#1a1a1a" # Near Black
     info:
-      light: "#0284c7"
-      dark: "#38bdf8"
+      light: "#6b7280" # Gray
+      dark: "#9ca3af" # Light Gray
     positive:
-      light: "#16a34a"
-      dark: "#4ade80"
+      light: "#10b981" # Green
+      dark: "#34d399" # Light Green
     warning:
-      light: "#f8c900"
-      dark: "#fbbf24"
+      light: "#f59e0b" # Amber
+      dark: "#fbbf24" # Light Amber
     negative:
-      light: "#dc2626"
-      dark: "#f87171"
+      light: "#ef4444" # Red
+      dark: "#f87171" # Light Red
 
 plugins:
   components:
@@ -65,17 +65,17 @@ plugins:
     "@evidence-dev/core-components": {}
 
   datasources:
-    # You can add additional datasources here by adding npm packages. 
+    # You can add additional datasources here by adding npm packages.
     # Make to also add them to `package.json`.
-    "@evidence-dev/bigquery": { }
-    "@evidence-dev/csv": { }
-    "@evidence-dev/databricks": { }
-    "@evidence-dev/duckdb": { }
-    "@evidence-dev/mssql": { }
-    "@evidence-dev/mysql": { }
-    "@evidence-dev/postgres": { }
-    "@evidence-dev/source-javascript": { }
-    "@evidence-dev/snowflake": { }
-    "@evidence-dev/sqlite": { }
-    "@evidence-dev/trino": { }
-    "@evidence-dev/motherduck": { }
+    "@evidence-dev/bigquery": {}
+    "@evidence-dev/csv": {}
+    "@evidence-dev/databricks": {}
+    "@evidence-dev/duckdb": {}
+    "@evidence-dev/mssql": {}
+    "@evidence-dev/mysql": {}
+    "@evidence-dev/postgres": {}
+    "@evidence-dev/source-javascript": {}
+    "@evidence-dev/snowflake": {}
+    "@evidence-dev/sqlite": {}
+    "@evidence-dev/trino": {}
+    "@evidence-dev/motherduck": {}

@@ -1,34 +1,87 @@
-# tipscout Statistics
+---
+title: tipscout Statistics
+---
+
+## Active Deals
+
+```sql active_deals
+SELECT
+    deal_id,
+    merchant_name,
+    CASE
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+        THEN TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)
+        ELSE NULL
+    END AS total_available,
+    sold,
+    remaining,
+    CASE
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+             AND (TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)) > 0
+        THEN CAST(TRY_CAST(remaining AS INTEGER) AS FLOAT) / (TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER))
+        ELSE NULL
+    END AS remaining_percent,
+    CASE
+        WHEN TRY_CAST(old_price AS FLOAT) IS NOT NULL AND TRY_CAST(new_price AS FLOAT) IS NOT NULL
+             AND TRY_CAST(old_price AS FLOAT) > 0
+        THEN (TRY_CAST(old_price AS FLOAT) - TRY_CAST(new_price AS FLOAT)) / TRY_CAST(old_price AS FLOAT)
+        ELSE NULL
+    END AS discount_percent,
+    full_url
+FROM tipster_data.deals
+WHERE status = 'ACTIVE'
+ORDER BY remaining_percent ASC NULLS LAST
+```
+
+<DataTable data={active_deals} emptySet="warn" emptyMessage="No active deals found at the moment. Check back soon for new opportunities!">
+    <Column id="deal_id" title="Deal ID"/>
+    <Column id="merchant_name" title="Merchant Name"/>
+    <Column id="total_available" title="Total Available"/>
+    <Column id="sold" title="Sold"/>
+    <Column id="remaining" title="Remaining"/>
+    <Column id="remaining_percent" title="Remaining %" fmt="pct2" contentType="colorscale" scaleColor="red" min=0 max=1/>
+    <Column id="discount_percent" title="Discount %" fmt="pct2" contentType="colorscale" scaleColor="green" min=0 max=1/>
+    <Column id="full_url" title="Deal Link" contentType="link"/>
+</DataTable>
 
 ## Deal Status Overview
 
-```sql deal_status_counts
-SELECT
-    status,
-    COUNT(*) as deal_count
+```sql active_deals_count
+SELECT COUNT(*) as deal_count
 FROM tipster_data.deals
-GROUP BY status
-ORDER BY deal_count DESC
+WHERE status = 'ACTIVE'
+```
+
+```sql expired_deals_count
+SELECT COUNT(*) as deal_count
+FROM tipster_data.deals
+WHERE status = 'EXPIRED'
+```
+
+```sql sold_out_deals_count
+SELECT COUNT(*) as deal_count
+FROM tipster_data.deals
+WHERE status = 'SOLD OUT'
 ```
 
 <div class="grid grid-cols-3 gap-4 mb-6">
     <BigValue 
-        data={deal_status_counts} 
-        value='deal_count' 
-        title='Active Deals'
-        where="status = 'ACTIVE'"
+        data={active_deals_count} 
+        value="deal_count" 
+        title="Active Deals"
+        fmt="#,##0"
     />
     <BigValue 
-        data={deal_status_counts} 
-        value='deal_count' 
-        title='Expired Deals'
-        where="status = 'EXPIRED'"
+        data={expired_deals_count} 
+        value="deal_count" 
+        title="Expired Deals"
+        fmt="#,##0"
     />
     <BigValue 
-        data={deal_status_counts} 
-        value='deal_count' 
-        title='Sold Out Deals'
-        where="status = 'SOLD OUT'"
+        data={sold_out_deals_count} 
+        value="deal_count" 
+        title="Sold Out Deals"
+        fmt="#,##0"
     />
 </div>
 
@@ -66,7 +119,26 @@ SELECT
     AVG(TRY_CAST(old_price AS FLOAT)) - LAG(AVG(TRY_CAST(old_price AS FLOAT)), 1) OVER (ORDER BY DATE_TRUNC('month', CAST(date_added AS DATE))) as old_price_mom_diff,
     AVG(TRY_CAST(new_price AS FLOAT)) as avg_new_price,
     LAG(AVG(TRY_CAST(new_price AS FLOAT)), 1) OVER (ORDER BY DATE_TRUNC('month', CAST(date_added AS DATE))) as previous_month_avg_new_price,
-    AVG(TRY_CAST(new_price AS FLOAT)) - LAG(AVG(TRY_CAST(new_price AS FLOAT)), 1) OVER (ORDER BY DATE_TRUNC('month', CAST(date_added AS DATE))) as new_price_mom_diff
+    AVG(TRY_CAST(new_price AS FLOAT)) - LAG(AVG(TRY_CAST(new_price AS FLOAT)), 1) OVER (ORDER BY DATE_TRUNC('month', CAST(date_added AS DATE))) as new_price_mom_diff,
+    SUM(CASE
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+        THEN TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)
+        ELSE NULL
+    END) as total_vouchers_available,
+    LAG(SUM(CASE
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+        THEN TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)
+        ELSE NULL
+    END), 1) OVER (ORDER BY DATE_TRUNC('month', CAST(date_added AS DATE))) as previous_month_vouchers,
+    SUM(CASE
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+        THEN TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)
+        ELSE NULL
+    END) - LAG(SUM(CASE
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+        THEN TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)
+        ELSE NULL
+    END), 1) OVER (ORDER BY DATE_TRUNC('month', CAST(date_added AS DATE))) as vouchers_mom_diff
 FROM tipster_data.deals
 WHERE date_added IS NOT NULL AND date_added != ''
 GROUP BY 1
@@ -75,7 +147,7 @@ ORDER BY 1 DESC
 
 ## Key Metrics
 
-<div class="grid grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-5 gap-4 mb-6">
   <BigValue 
     data={deals_monthly} 
     value=deal_count
@@ -120,6 +192,18 @@ ORDER BY 1 DESC
     comparisonTitle="vs. Last Month"
     downIsGood=true
   />
+
+<BigValue 
+    data={deals_monthly} 
+    value=total_vouchers_available
+    title="Total Vouchers Available"
+    fmt='#,##0'
+    sparkline=date_added
+    comparison=vouchers_mom_diff
+    comparisonFmt='#,##0'
+    comparisonTitle="vs. Last Month"
+  />
+
 </div>
 
 <!--
@@ -251,9 +335,69 @@ ORDER BY day
     subtitle="Number of new deals added each day"
 />
 
-## Active Deals
+```sql vouchers_by_day
+SELECT
+    CAST(date_added AS DATE) as day,
+    SUM(CASE
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+        THEN TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)
+        ELSE NULL
+    END) as total_vouchers
+FROM tipster_data.deals
+WHERE date_added IS NOT NULL AND date_added != ''
+GROUP BY CAST(date_added AS DATE)
+ORDER BY day
+```
 
-```sql active_deals
+<CalendarHeatmap 
+    data={vouchers_by_day}
+    date=day
+    value=total_vouchers
+    title="Daily Voucher Volume Calendar"
+    subtitle="Total number of vouchers available each day"
+/>
+
+## Weekly Voucher Volume & Revenue
+
+```sql weekly_vouchers_and_revenue
+SELECT
+    DATE_TRUNC('week', CAST(date_added AS DATE)) as week,
+    SUM(CASE
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+        THEN TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)
+        ELSE NULL
+    END) as total_vouchers,
+    SUM(
+        CASE
+            WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL
+                 AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+                 AND TRY_CAST(new_price AS FLOAT) IS NOT NULL
+            THEN (TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)) * TRY_CAST(new_price AS FLOAT)
+            ELSE NULL
+        END
+    ) as estimated_revenue
+FROM tipster_data.deals
+WHERE date_added IS NOT NULL AND date_added != ''
+GROUP BY DATE_TRUNC('week', CAST(date_added AS DATE))
+ORDER BY week
+```
+
+<LineChart 
+    data={weekly_vouchers_and_revenue}
+    x=week
+    y=estimated_revenue
+    y2=total_vouchers
+    y2SeriesType=bar
+    title="Weekly Voucher Volume & Estimated Revenue"
+    yAxisTitle="Estimated Revenue (DKK)"
+    y2AxisTitle="Total Vouchers"
+    yFmt='#,##0" DKK"'
+    y2Fmt='#,##0'
+/>
+
+## Top Revenue Deals
+
+```sql top_revenue_deals
 SELECT
     deal_id,
     merchant_name,
@@ -261,43 +405,32 @@ SELECT
         WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
         THEN TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)
         ELSE NULL
-    END AS total_available,
-    sold,
-    remaining,
+    END AS total_vouchers,
+    TRY_CAST(new_price AS FLOAT) as new_price,
     CASE
-        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
-             AND (TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)) > 0
-        THEN CAST(TRY_CAST(remaining AS INTEGER) AS FLOAT) / (TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER))
+        WHEN TRY_CAST(sold AS INTEGER) IS NOT NULL
+             AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+             AND TRY_CAST(new_price AS FLOAT) IS NOT NULL
+        THEN (TRY_CAST(sold AS INTEGER) + TRY_CAST(remaining AS INTEGER)) * TRY_CAST(new_price AS FLOAT)
         ELSE NULL
-    END AS remaining_percent,
-    CASE
-        WHEN TRY_CAST(old_price AS FLOAT) IS NOT NULL AND TRY_CAST(new_price AS FLOAT) IS NOT NULL
-             AND TRY_CAST(old_price AS FLOAT) > 0
-        THEN (TRY_CAST(old_price AS FLOAT) - TRY_CAST(new_price AS FLOAT)) / TRY_CAST(old_price AS FLOAT)
-        ELSE NULL
-    END AS discount_percent,
-    full_url
+    END as estimated_revenue
 FROM tipster_data.deals
-WHERE status = 'ACTIVE'
-ORDER BY remaining_percent ASC NULLS LAST
+WHERE TRY_CAST(sold AS INTEGER) IS NOT NULL
+      AND TRY_CAST(remaining AS INTEGER) IS NOT NULL
+      AND TRY_CAST(new_price AS FLOAT) IS NOT NULL
+ORDER BY estimated_revenue DESC
+LIMIT 15
 ```
 
-<DataTable data={active_deals}>
-    <Column id='deal_id' title='Deal ID'/>
-    <Column id='merchant_name' title='Merchant Name'/>
-    <Column id='total_available' title='Total Available'/>
-    <Column id='sold' title='Sold'/>
-    <Column id='remaining' title='Remaining'/>
-    <Column id='remaining_percent' title='Remaining %' fmt='pct2' 
-        contentType='colorscale' 
-        scaleColor='red' 
-        min=0 max=1/>
-    <Column id='discount_percent' title='Discount %' fmt='pct2' 
-        contentType='colorscale' 
-        scaleColor='green' 
-        min=0 max=1/>
-    <Column id='full_url' title='Deal Link' contentType='link'/>
-</DataTable>
+<BarChart 
+    data={top_revenue_deals}
+    x='merchant_name'
+    y='estimated_revenue'
+    title="Top 15 Revenue-Generating Deals"
+    subtitle="Deals ranked by total potential revenue (voucher count × new price)"
+    yFmt='#,##0" DKK"'
+    swapXY=true
+/>
 
 ## Top Merchants
 
@@ -353,29 +486,31 @@ LIMIT 10
 
 </div>
 
-## Deal Status Distribution
-
-```sql status_distribution
-SELECT
-    status,
-    COUNT(*) as deal_count
-FROM tipster_data.deals
-GROUP BY status
-ORDER BY deal_count DESC
-```
-
-<BarChart 
-    data={status_distribution} 
-    x='status' 
-    y='deal_count'
-    title="Current Status of Deals"
-/>
-
 ## All Deals Data
 
 ```sql all_deals
 SELECT * FROM tipster_data.deals
-ORDER BY inserted_at DESC
+ORDER BY date_added DESC
 ```
 
-<DataTable data={all_deals} rows=20/>
+<DataTable data={all_deals} rows=10 rowShading=true>
+    <Column id="deal_id" title="Deal ID"/>
+    <Column id="full_url" title="Deal Link" contentType="link" openInNewTab=true linkLabel="View Deal ↗"/>
+    <Column id="status" title="Status"/>
+    <Column id="merchant_name" title="Merchant"/>
+    <Column id="deal_description" title="Description" wrap=true/>
+    <Column id="sold" title="Sold"/>
+    <Column id="remaining" title="Remaining"/>
+    <Column id="total_available" title="Total Available"/>
+    <Column id="remaining_percent" title="Remaining %" fmt="pct2"/>
+    <Column id="old_price" title="Old Price"/>
+    <Column id="old_currency" title="Old Currency"/>
+    <Column id="new_price" title="New Price"/>
+    <Column id="new_currency" title="New Currency"/>
+    <Column id="discount_absolute" title="Discount Amount"/>
+    <Column id="discount_percent" title="Discount %" fmt="pct2"/>
+    <Column id="date_added" title="Date Added"/>
+    <Column id="location" title="Location"/>
+    <Column id="hours" title="Hours"/>
+    <Column id="inserted_at" title="Inserted At"/>
+</DataTable>
