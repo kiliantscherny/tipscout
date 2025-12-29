@@ -1,5 +1,5 @@
 
-<h1 align="center"><img src="images/tipscout-logo.png" alt="tipscout logo"></h1>
+<h1 align="center"><img src="static/tipscout-logo.png" alt="tipscout logo"></h1>
 <h2 align="center"> tipscout: Stats about Tipster deals </h2>
 <p align="center"> A data pipeline and visualization dashboard to analyze deals from Tipster.</p>
 
